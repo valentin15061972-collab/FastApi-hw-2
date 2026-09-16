@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from app.schemas import LoginRequest, LoginResponse
-from app.db import get_user_by_username
+from app.dependencies import get_user_by_username
 from app.dependencies import verify_password, create_token
 
 

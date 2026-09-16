@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 
-class Ad(BaseModel):
+class Advertisement(BaseModel):
     title: str
     description: str | None = None
     price: float | None = None
@@ -10,7 +10,7 @@ class Ad(BaseModel):
     created_at: datetime | None = None
 
 
-class AdCreate(BaseModel):
+class AdvertisementCreate(BaseModel):
     title: str
     description: str | None = None
     price: float | None = None
@@ -25,7 +25,9 @@ class User(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    name: str
+    name: str | None = None
+    password: str | None = None
+    group: str | None = None
 
 
 class LoginRequest(BaseModel):

@@ -4,3 +4,6 @@ bcrypt
 python-dotenv
 requests
 PyJWT
+asyncpg
+sqlalchemy
+psycopg2-binary
