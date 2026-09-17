@@ -8,8 +8,8 @@ router = APIRouter()
 
 
 @router.post("/login", response_model=LoginResponse, summary="Login")
-def login(login_data: LoginRequest):
-    user = get_user_by_username(login_data.username)
+async def login(login_data: LoginRequest):
+    user = await get_user_by_username(login_data.username)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

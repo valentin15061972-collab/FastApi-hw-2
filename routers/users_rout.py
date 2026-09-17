@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from app.schemas import User, UserUpdate
-from app.dependencies import get_user_by_username, get_user_by_id, update_user, delete_user, create_user
-from app.dependencies import get_current_user, hash_password
+from app.dependencies import get_user_by_username, get_user_by_id, get_all_users, update_user, delete_user, create_user
+from app.dependencies import get_current_user, hash_password, require_admin
 
 
 router = APIRouter()
@@ -16,11 +16,16 @@ async def create_user(user: User):
     return new_user
 
 
+@router.get("/user", response_model=list[User], summary="Get all users (admins only)")
+async def get_users(_current_user: dict = Depends(require_admin)):
+    return await get_all_users()
+
+
 @router.get("/user/{user_id}", response_model=User, summary="Get user")
 async def get_user(user_id: int):
     result = await get_user_by_id(user_id)
     if result is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return result
 
 
@@ -31,7 +36,7 @@ async def update_user(user_id: int, user_update: UserUpdate, current_user: dict 
 
     existing = await get_user_by_id(user_id)
     if existing is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     update_data = user_update.model_dump(exclude_none=True)
     if "password" in update_data:
@@ -51,5 +56,5 @@ async def delete_user(user_id: int, current_user: dict = Depends(get_current_use
 
     deleted = await delete_user(user_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return {"message": "User deleted"}

@@ -1,6 +1,6 @@
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Query, status
-from app.schemas import Advertisement, AdvertisementCreate
+from app.schemas import Advertisement, AdvertisementCreate, AdvertisementListResponse
 from app.dependencies import get_ad, update_ad, delete_ad, search_ads, create_ad
 from app.dependencies import get_current_user
 
@@ -8,8 +8,10 @@ from app.dependencies import get_current_user
 router = APIRouter()
 
 
-@router.post("/advertisement", response_model=Advertisement, summary="Create advertisement")
-async def create_advertisement(advertisement: AdvertisementCreate, current_user: dict = Depends(get_current_user),):
+@router.post("/advertisement", response_model=Advertisement,
+             summary="Create advertisement")
+async def create_advertisement(advertisement: AdvertisementCreate,
+                               current_user: dict = Depends(get_current_user)):
     new_ad = await create_ad(
         title=advertisement.title,
         author=current_user["name"],
@@ -19,15 +21,17 @@ async def create_advertisement(advertisement: AdvertisementCreate, current_user:
     return new_ad
 
 
-@router.get("/advertisement/{advertisement_id}", response_model=Advertisement, summary="Get advertisement")
+@router.get("/advertisement/{advertisement_id}", response_model=Advertisement,
+            summary="Get advertisement")
 async def get_advertisement_id(advertisement_id: int):
     result = await get_ad(advertisement_id)
     if result is None:
-        raise HTTPException(status_code=404, detail="Advertisement not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Advertisement not found")
     return result
 
 
-@router.get("/advertisement", summary="Search advertisements by query parameters")
+@router.get("/advertisement", response_model=AdvertisementListResponse,
+            summary="Search advertisements by query parameters")
 async def search_advertisements_by_fields(
     id: int | None = Query(None, description="Search by id"),
     title: str | None = Query(None, description="Search by title"),
@@ -35,6 +39,8 @@ async def search_advertisements_by_fields(
     price: float | None = Query(None, description="Search by price"),
     author: str | None = Query(None, description="Search by author"),
     created_at: datetime | None = Query(None, description="Search by created_at"),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(10, ge=1, le=100, description="Items per page"),
 ):
     return await search_ads(
         id=id,
@@ -43,14 +49,18 @@ async def search_advertisements_by_fields(
         price=price,
         author=author,
         created_at=created_at,
+        page=page,
+        per_page=per_page,
     )
 
 
-@router.patch("/advertisement/{advertisement_id}", response_model=Advertisement, summary="Update advertisement")
-async def update_advertisement(advertisement_id: int, advertisement_data: AdvertisementCreate, current_user: dict = Depends(get_current_user)):
+@router.patch("/advertisement/{advertisement_id}", response_model=Advertisement,
+              summary="Update advertisement")
+async def update_advertisement(advertisement_id: int, advertisement_data: AdvertisementCreate,
+                               current_user: dict = Depends(get_current_user)):
     existing = await get_ad(advertisement_id)
     if existing is None:
-        raise HTTPException(status_code=404, detail="advertisement not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="advertisement not found")
     if current_user["group"] != "admin" and existing["author"] != current_user["name"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -64,7 +74,7 @@ async def update_advertisement(advertisement_id: int, advertisement_data: Advert
 async def delete_ad_route(advertisement_id: int, current_user: dict = Depends(get_current_user)):
     existing = await get_ad(advertisement_id)
     if existing is None:
-        raise HTTPException(status_code=404, detail="advertisement not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="advertisement not found")
     if current_user["group"] != "admin" and existing["author"] != current_user["name"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -72,7 +82,7 @@ async def delete_ad_route(advertisement_id: int, current_user: dict = Depends(ge
         )
     deleted = await delete_ad(advertisement_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="advertisement not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="advertisement not found")
     return {"message": "advertisement deleted"}
 
 

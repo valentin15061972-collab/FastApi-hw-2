@@ -16,6 +16,14 @@ class AdvertisementCreate(BaseModel):
     price: float | None = None
 
 
+class AdvertisementListResponse(BaseModel):
+    items: list[Advertisement]
+    total: int
+    page: int
+    per_page: int
+    pages: int
+
+
 class User(BaseModel):
     id: int | None = None
     name: str
@@ -38,3 +46,4 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     token: str
     expires_in: int
+

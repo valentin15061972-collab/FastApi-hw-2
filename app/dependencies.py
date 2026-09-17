@@ -59,7 +59,7 @@ async def get_current_user(
     except jwt.InvalidTokenError:
         raise credentials_exception
 
-    user = get_user_by_username(username)
+    user = await get_user_by_username(username)
     if user is None:
         raise credentials_exception
 
@@ -137,7 +137,8 @@ async def delete_user(user_id: int) -> bool:
         return True
 
 
-async def create_ad(title: str, author: str, description: Optional[str] = None, price: Optional[float] = None) -> dict:
+async def create_ad(title: str, author: str, description: Optional[str] = None,
+                    price: Optional[float] = None) -> dict:
     async with get_session() as session:
         ad = Ad(title=title, author=author, description=description, price=price)
         session.add(ad)
@@ -185,9 +186,12 @@ async def search_ads(
     price: Optional[float] = None,
     author: Optional[str] = None,
     created_at: Optional[datetime] = None,
-) -> list[dict]:
+    page: int = 1,
+    per_page: int = 10,
+) -> dict:
     async with get_session() as session:
         query = select(Ad)
+        count_query = select(func.count()).select_from(Ad)
         conditions = []
         if id is not None:
             conditions.append(Ad.id == id)
@@ -203,6 +207,18 @@ async def search_ads(
             conditions.append(func.date(Ad.created_at) >= func.date(created_at))
         if conditions:
             query = query.where(*conditions)
+            count_query = count_query.where(*conditions)
+        total_result = await session.execute(count_query)
+        total = total_result.scalar()
+        pages = (total + per_page - 1) // per_page if total > 0 else 0
+        offset = (page - 1) * per_page
+        query = query.offset(offset).limit(per_page)
         result = await session.execute(query)
         ads = result.scalars().all()
-        return [ad.to_dict() for ad in ads]
+        return {
+            "items": [ad.to_dict() for ad in ads],
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": pages,
+        }
